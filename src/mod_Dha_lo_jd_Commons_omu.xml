@@ -1,0 +1,16 @@
+<OMU url="http://bit.ly/P7GHAu">
+<!-- http://bit.ly/P7GHAu 最新版 -->
+<!-- http://bit.ly/TQbhxq 0.1.18 -->
+<!-- http://bit.ly/QWdoyY 0.1.17 -->
+<!-- http://bit.ly/UolIId 0.1.16 -->
+	<MOD>mod_Dha_lo_jd_Commons</MOD><!-- //Mod名 -->
+	<version>0.1.19</version><!-- //バージョン。doubleで格納される -->
+	<!-- //ファイルダウンロード＆ディレクトリ作成 -->
+	<fileset path="" >
+		<file url="http://bit.ly/TQcFjE" suffix="_v(_[^_\.]+)+">kawo_Commons_v_0_1_19.zip</file>
+<!-- <file url="http://bit.ly/TQcFjE" suffix="_v(_[^_\.]+)+">kawo_Commons_v_0_1_19.zip</file> 最新版 -->
+<!-- <file url="http://bit.ly/QWdvux" suffix="_v(_[^_\.]+)+">kawo_Commons_v_0_1_18.zip</file> 0.1.18 -->
+<!-- <file url="http://bit.ly/UolNMh" suffix="_v(_[^_\.]+)+">kawo_Commons_v_0_1_17.zip</file> 0.1.17 -->
+<!-- <file url="http://bit.ly/P7GI7L" suffix="_v(_[^_\.]+)+">kawo_Commons_v_0_1_16.zip</file> 0.1.16 -->
+	</fileset>
+</OMU>
