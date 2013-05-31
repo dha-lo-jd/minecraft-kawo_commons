@@ -94,13 +94,13 @@ public class Point2DMatrixSupport {
 		return cirsuitMap.get(radius);
 	}
 
-	public static Iterable<Point2D> getNearestPointMatrix3D(int radius) {
+	public static Iterable<Point2D> getNearestPointMatrix2D(int radius) {
 		if (radius < 1) {
 			return Lists.newArrayList();
 		}
 		if (!matrixMap.containsKey(radius)) {
 			List<Point2D> list = Lists.newArrayList();
-			list.addAll(Lists.newArrayList(getNearestPointMatrix3D(radius - 1)));
+			list.addAll(Lists.newArrayList(getNearestPointMatrix2D(radius - 1)));
 			list.addAll(Lists.newArrayList(getCircuit2D(radius)));
 			matrixMap.put(radius, list);
 		}

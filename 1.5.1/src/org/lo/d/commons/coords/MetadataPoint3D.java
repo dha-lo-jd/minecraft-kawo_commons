@@ -93,7 +93,7 @@ public class MetadataPoint3D extends Point3D {
 	}
 
 	@Override
-	public MetadataPoint3D extendedPoint(int radius) {
+	public MetadataPoint3D extendedPoint(Integer radius) {
 		return new MetadataPoint3D(getX() * radius, getY() * radius, getZ() * radius, metadataSurface);
 	}
 

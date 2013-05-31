@@ -1,87 +1,72 @@
 package org.lo.d.commons.coords;
 
+import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.Vec3;
 
-public class Point2D {
-	private final int x, y;
+public class Point2D extends NumPoint2D<Integer> {
+	public static class Factory implements NumPoint2D.Factory<Integer, Point2D> {
+		public static final Factory instance = new Factory();
+
+		private Factory() {
+		}
+
+		@Override
+		public Point2D createInstance(Integer x, Integer y) {
+			return new Point2D(x, y);
+		}
+	}
+
+	public Point2D(ChunkCoordinates chunkCoordinates) {
+		this(chunkCoordinates.posX, chunkCoordinates.posZ);//2DにおけるYは3DではZ
+	}
 
 	public Point2D(int x, int y) {
-		this.x = x;
-		this.y = y;
+		super(x, y);
+	}
+
+	public Point2D(NumPoint2D<?> point2d) {
+		this(point2d.getX().intValue(), point2d.getY().intValue());
 	}
 
 	public Point2D(Vec3 vec3) {
-		this(MathHelper.floor_double(vec3.xCoord), MathHelper.floor_double(vec3.yCoord));
-	}
-
-	public double distanceToSq(double x, double y) {
-		return (x * x) + (y * y);
-	}
-
-	public int distanceToSq(Point2D dest) {
-		int x = getX() - dest.getX();
-		int y = getY() - dest.getY();
-
-		return distanceToSq(x, y);
-	}
-
-	public double distanceToSq(Vec3 vec3) {
-		double toX = vec3.xCoord;
-		double toY = vec3.zCoord;//3次元におけるZが2次元でのY
-
-		double x = getX() - toX;
-		double y = getY() - toY;
-
-		return distanceToSq(x, y);
-
+		this(MathHelper.floor_double(vec3.xCoord), MathHelper.floor_double(vec3.zCoord));//2DにおけるYは3DではZ
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		Point2D other = (Point2D) obj;
-		if (x != other.x) {
-			return false;
-		}
-		if (y != other.y) {
-			return false;
-		}
-		return true;
-	}
-
-	public int getX() {
-		return x;
-	}
-
-	public int getY() {
-		return y;
+	public Point2D add3DZ(Number z) {
+		return addY(y);
 	}
 
 	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + x;
-		result = prime * result + y;
-		return result;
+	public Point2D addPoint(NumPoint2D<?> point2d) {
+		return new Point2D(addedX(point2d), addedY(point2d));
 	}
 
 	@Override
-	public String toString() {
-		return "Point2D [x=" + x + ", y=" + y + "]";
+	public Point2D addX(Number x) {
+		return new Point2D(addedX(x), getY());
 	}
 
-	private int distanceToSq(int x, int y) {
-		return (x * x) + (y * y);
+	@Override
+	public Point2D addY(Number y) {
+		return new Point2D(getX(), addedY(y));
+	}
+
+	private int addedX(Number x) {
+		return getX() + x.intValue();
+	}
+
+	private int addedX(NumPoint2D<?> point2d) {
+		return addedX(point2d.getX());
+	}
+
+	private int addedY(Number y) {
+		return getY() + y.intValue();
+	}
+
+	private int addedY(NumPoint2D<?> point2d) {
+		return addedY(point2d.getY());
 	}
 
 }
