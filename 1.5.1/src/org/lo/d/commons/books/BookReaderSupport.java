@@ -12,10 +12,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemEditableBook;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemWritableBook;
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
 
@@ -159,29 +157,26 @@ public class BookReaderSupport {
 	public static Multimap<String, String> readBookCommandToMap(ItemStack book) {
 		final Multimap<String, String> map = ArrayListMultimap.create();
 		if (book != null) {
-			Item item = book.getItem();
-			if (item instanceof ItemWritableBook || item instanceof ItemEditableBook) {
-				readBook(book, new BookReader() {
-					@Override
-					public State readLine(String line) {
-						String[] prop = line.split(",");
-						if (prop == null || prop.length < 2) {
-							return State.CONTINUE;
-						}
-						String key = prop[0].trim().toUpperCase();
-						if (key.isEmpty()) {
-							return State.CONTINUE;
-						}
-						List<String> values = Lists.newArrayList();
-						for (int i = 1; i < prop.length; i++) {
-							values.add(prop[i].trim().toUpperCase());
-						}
-
-						map.putAll(key, values);
+			readBook(book, new BookReader() {
+				@Override
+				public State readLine(String line) {
+					String[] prop = line.split(",");
+					if (prop == null || prop.length < 2) {
 						return State.CONTINUE;
 					}
-				});
-			}
+					String key = prop[0].trim().toUpperCase();
+					if (key.isEmpty()) {
+						return State.CONTINUE;
+					}
+					List<String> values = Lists.newArrayList();
+					for (int i = 1; i < prop.length; i++) {
+						values.add(prop[i].trim().toUpperCase());
+					}
+
+					map.putAll(key, values);
+					return State.CONTINUE;
+				}
+			});
 		}
 		return map;
 	}
@@ -190,7 +185,11 @@ public class BookReaderSupport {
 		List<String> lines = Lists.newArrayList();
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < pages.tagCount(); i++) {
-			NBTTagString nbtTagString = (NBTTagString) pages.tagAt(i);
+			NBTBase tag = pages.tagAt(i);
+			if (!(tag instanceof NBTTagString)) {
+				return Lists.newArrayList();
+			}
+			NBTTagString nbtTagString = (NBTTagString) tag;
 			String l = nbtTagString.data.replaceAll("[\\r\\n]", "");
 			sb.append(l);
 
