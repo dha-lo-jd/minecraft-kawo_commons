@@ -27,32 +27,17 @@ import com.google.common.collect.Sets;
 
 public class ReflectionSupport {
 
-	public interface ClassFilterWorker<T> {
-		T createResultObjectInstsnce();
-
-		void work(Class<?> cls, T resultObject);
-	}
-
 	public interface FieldFilter {
 		enum State {
-			INCLUDE,
-			EXCLUDE;
+			INCLUDE, EXCLUDE;
 		}
 
 		State doFilter(Field field);
 	}
 
-	public static abstract class ListClassFilterWorker implements ClassFilterWorker<List<Class<?>>> {
-		@Override
-		public List<Class<?>> createResultObjectInstsnce() {
-			return Lists.newArrayList();
-		}
-	}
-
 	public interface MethodFilter {
 		enum State {
-			INCLUDE,
-			EXCLUDE;
+			INCLUDE, EXCLUDE;
 		}
 
 		State doFilter(Method method);
@@ -74,30 +59,27 @@ public class ReflectionSupport {
 		void work(Class<?> cls);
 	}
 
-	private static class CompositeFileClassesFindJob<T> implements Callable<Void> {
+	private static class CompositeFileClassesFindJob implements Callable<Void> {
 		private final File compositeFile;
 		private final String packageName;
-		private final ClassFilterWorker<T> worker;
-		private final T resultObject;
+		private final Set<? extends Worker> workers;
 		private final ClassLoader classLoader;
 
-		private CompositeFileClassesFindJob(File compositeFile, String packageName, ClassFilterWorker<T> worker,
-				T resultObject, ClassLoader classLoader) {
+		private CompositeFileClassesFindJob(File compositeFile, String packageName, Set<? extends Worker> workers,
+				ClassLoader classLoader) {
 			this.compositeFile = compositeFile;
 			this.packageName = packageName;
-			this.worker = worker;
-			this.resultObject = resultObject;
+			this.workers = workers;
 			this.classLoader = classLoader;
 		}
 
 		@Override
 		public Void call() throws Exception {
-			findClassesInCompositeFile(compositeFile, packageName, worker, resultObject, classLoader);
+			findClassesInCompositeFile(compositeFile, packageName, workers, classLoader);
 			return null;
 		}
 
-		private void findClassesInCompositeFile(File compositeFile, String packageName,
-				ClassFilterWorker<T> worker, T resultObject,
+		private void findClassesInCompositeFile(File compositeFile, String packageName, Set<? extends Worker> workers,
 				ClassLoader classLoader) {
 			if (!compositeFile.exists()) {
 				return;
@@ -136,10 +118,12 @@ public class ReflectionSupport {
 									// happen, for example, in classes, which depend on
 									// Spring to inject some beans, and which fail,
 									// if dependency is not fulfilled
-									_class = Class.forName(lname.substring(0, lname.length() - 6), false,
-											Thread.currentThread().getContextClassLoader());
+									_class = Class.forName(lname.substring(0, lname.length() - 6), false, Thread
+											.currentThread().getContextClassLoader());
 								}
-								worker.work(_class, resultObject);
+								for (Worker worker : workers) {
+									worker.work(_class);
+								}
 							} catch (Throwable e) {
 							}
 						}
@@ -172,19 +156,14 @@ public class ReflectionSupport {
 	private static final Pattern[] PATTERN_DIR_EXCLUDES;
 
 	static {
-		PATTERN_DIR_EXCLUDES = new Pattern[] {
-				Pattern.compile("[\\\\/]bin[\\\\/]((?!minecraft.jar)[^\\\\])+$"),
-				Pattern.compile("[\\\\/]lib[\\\\/][^\\\\/]+$"),
-		};
+		PATTERN_DIR_EXCLUDES = new Pattern[] { Pattern.compile("[\\\\/]bin[\\\\/]((?!minecraft.jar)[^\\\\])+$"),
+				Pattern.compile("[\\\\/]lib[\\\\/][^\\\\/]+$"), };
 	}
 
 	private static final Pattern[] PATTERN_FILE_EXCLUDES;
 
 	static {
-		PATTERN_FILE_EXCLUDES = new Pattern[] {
-				Pattern.compile("^java\\."),
-				Pattern.compile("^javax\\."),
-		};
+		PATTERN_FILE_EXCLUDES = new Pattern[] { Pattern.compile("^java\\."), Pattern.compile("^javax\\."), };
 	}
 
 	public static Field[] getAllRecursiveFields(Class<?> cls) {
@@ -205,68 +184,51 @@ public class ReflectionSupport {
 	 * @throws ClassNotFoundException
 	 * @throws IOException
 	 */
-	public static <T> T getClasses(String packageName, ClassFilterWorker<T> worker) {
-		ClassLoader classLoader = Thread.currentThread()
-				.getContextClassLoader();
+	public static void getClasses(String packageName, Set<? extends Worker> workers) {
+		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 		assert classLoader != null;
+		String path = packageName.replace('.', '/');
+		Enumeration<URL> resources;
+		Set<File> dirs = Sets.newHashSet();
 		try {
-			String path = packageName.replace('.', '/');
-			Enumeration<URL> resources;
-			Set<File> dirs = Sets.newHashSet();
-			if (classLoader instanceof URLClassLoader) {
-				classLoader = new URLClassLoader(((URLClassLoader) classLoader).getURLs());
+			resources = classLoader.getResources(path);
+			while (resources.hasMoreElements()) {
+				URL resource = resources.nextElement();
+				String fileName = resource.getFile();
+				String fileNameDecoded = URLDecoder.decode(fileName, "UTF-8");
+				dirs.add(new File(fileNameDecoded));
 			}
-			try {
-				resources = classLoader.getResources(path);
-				while (resources.hasMoreElements()) {
-					URL resource = resources.nextElement();
+			if (classLoader instanceof URLClassLoader) {
+				for (URL resource : ((URLClassLoader) classLoader).getURLs()) {
 					String fileName = resource.getFile();
 					String fileNameDecoded = URLDecoder.decode(fileName, "UTF-8");
 					dirs.add(new File(fileNameDecoded));
 				}
-				if (classLoader instanceof URLClassLoader) {
-					for (URL resource : ((URLClassLoader) classLoader).getURLs()) {
-						String fileName = resource.getFile();
-						String fileNameDecoded = URLDecoder.decode(fileName, "UTF-8");
-						dirs.add(new File(fileNameDecoded));
-					}
-				}
-			} catch (IOException e1) {
 			}
-			T resultObjectInstsnce = worker.createResultObjectInstsnce();
-
-			ExecutorService executorService = Executors.newCachedThreadPool();
-			List<Callable<Void>> calls = Lists.newArrayList();
-			for (File directory : dirs) {
-				String directoryString = directory.toString();
-				boolean exclude = false;
-				for (Pattern pattern : PATTERN_DIR_EXCLUDES) {
-					exclude = exclude || pattern.matcher(directoryString).find();
-				}
-				if (exclude) {
-					continue;
-				}
-				System.out.println(directory);
-				findClasses(directory, packageName, worker, resultObjectInstsnce, classLoader, calls);
-			}
-
-			try {
-				executorService.invokeAll(calls);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-
-			executorService.shutdown();
-
-			return resultObjectInstsnce;
-		} finally {
-			if (classLoader != null && classLoader instanceof URLClassLoader) {
-				try {
-					((URLClassLoader) classLoader).close();
-				} catch (IOException e) {
-				}
-			}
+		} catch (IOException e1) {
 		}
+		ExecutorService executorService = Executors.newCachedThreadPool();
+		List<Callable<Void>> calls = Lists.newArrayList();
+		for (File directory : dirs) {
+			String directoryString = directory.toString();
+			boolean exclude = false;
+			for (Pattern pattern : PATTERN_DIR_EXCLUDES) {
+				exclude = exclude || pattern.matcher(directoryString).find();
+			}
+			if (exclude) {
+				continue;
+			}
+			System.out.println(directory);
+			findClasses(directory, packageName, workers, classLoader, calls);
+		}
+
+		try {
+			executorService.invokeAll(calls);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+		executorService.shutdown();
 	}
 
 	public static Field[] getFilteredRecursiveFields(Class<?> cls, final FieldFilter filter) {
@@ -327,16 +289,11 @@ public class ReflectionSupport {
 				System.out.println("find: " + matcher.group());
 			}
 		}
-		getClasses("", new ClassFilterWorker<Void>() {
+		getClasses("", Sets.newHashSet(new Worker() {
 			@Override
-			public Void createResultObjectInstsnce() {
-				return null;
+			public void work(Class<?> cls) {
 			}
-
-			@Override
-			public void work(Class<?> cls, Void resultObject) {
-			}
-		});
+		}));
 		//		new Test();
 	}
 
@@ -360,15 +317,14 @@ public class ReflectionSupport {
 	 * @return The classes
 	 * @throws ClassNotFoundException
 	 */
-	private static <T> T findClasses(File directory, String packageName, ClassFilterWorker<T> worker, T resultObject,
+	private static void findClasses(File directory, String packageName, Set<? extends Worker> workers,
 			ClassLoader classLoader, List<Callable<Void>> lazyAsyncCalls) {
 		if (!directory.exists()) {
-			return resultObject;
+			return;
 		}
 		if (!directory.isDirectory()) {
-			lazyAsyncCalls.add(new CompositeFileClassesFindJob<T>(directory, packageName, worker, resultObject,
-					classLoader));
-			return resultObject;
+			lazyAsyncCalls.add(new CompositeFileClassesFindJob(directory, packageName, workers, classLoader));
+			return;
 		}
 		File[] files = directory.listFiles();
 		String sep = packageName.isEmpty() ? "" : ".";
@@ -376,35 +332,30 @@ public class ReflectionSupport {
 			String fileName = file.getName();
 			if (file.isDirectory()) {
 				assert !fileName.contains(".");
-				findClasses(file, packageName + sep + fileName, worker, resultObject, classLoader, lazyAsyncCalls);
+				findClasses(file, packageName + sep + fileName, workers, classLoader, lazyAsyncCalls);
 			} else if (fileName.endsWith(".class")) {
 				try {
-
 					Class<?> _class;
 					try {
-						_class = Class.forName(packageName + sep
-								+ fileName.substring(0, fileName.length() - 6), false, classLoader);
+						_class = Class.forName(packageName + sep + fileName.substring(0, fileName.length() - 6), false,
+								classLoader);
 					} catch (ExceptionInInitializerError e) {
 						e.printStackTrace();
 						// happen, for example, in classes, which depend on
 						// Spring to inject some beans, and which fail,
 						// if dependency is not fulfilled
-						_class = Class.forName(
-								packageName
-										+ sep
-										+ fileName.substring(0,
-												fileName.length() - 6), false,
+						_class = Class.forName(packageName + sep + fileName.substring(0, fileName.length() - 6), false,
 								Thread.currentThread().getContextClassLoader());
 					}
-					worker.work(_class, resultObject);
+					for (Worker worker : workers) {
+						worker.work(_class);
+					}
 				} catch (Throwable e) {
 				}
 			} else {
-				lazyAsyncCalls.add(new CompositeFileClassesFindJob<T>(directory, packageName, worker, resultObject,
-						classLoader));
-				return resultObject;
+				lazyAsyncCalls.add(new CompositeFileClassesFindJob(directory, packageName, workers, classLoader));
 			}
 		}
-		return resultObject;
+		return;
 	}
 }

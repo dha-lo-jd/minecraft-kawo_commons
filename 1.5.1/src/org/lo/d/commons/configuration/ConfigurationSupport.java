@@ -16,107 +16,105 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 public class ConfigurationSupport {
 
 	@Retention(RetentionPolicy.RUNTIME)
-	@Target({
-			ElementType.METHOD, ElementType.FIELD
-	})
+	@Target({ ElementType.METHOD, ElementType.FIELD })
 	public @interface BlockIdConfig {
+		String comment() default "";
+
 		int defaultValue();
 
 		String name();
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
-	@Target({
-			ElementType.METHOD, ElementType.FIELD
-	})
+	@Target({ ElementType.METHOD, ElementType.FIELD })
 	public @interface BooleanArrayConfig {
+		String comment() default "";
+
 		boolean[] defaultValue();
 
 		String name();
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
-	@Target({
-			ElementType.METHOD, ElementType.FIELD
-	})
+	@Target({ ElementType.METHOD, ElementType.FIELD })
 	public @interface BooleanConfig {
+		String comment() default "";
+
 		boolean defaultValue();
 
 		String name();
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
-	@Target({
-		ElementType.TYPE
-	})
+	@Target({ ElementType.TYPE })
 	public @interface ConfigurationMod {
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
-	@Target({
-			ElementType.METHOD, ElementType.FIELD
-	})
+	@Target({ ElementType.METHOD, ElementType.FIELD })
 	public @interface DoubleArrayConfig {
+		String comment() default "";
+
 		double[] defaultValue();
 
 		String name();
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
-	@Target({
-			ElementType.METHOD, ElementType.FIELD
-	})
+	@Target({ ElementType.METHOD, ElementType.FIELD })
 	public @interface DoubleConfig {
+		String comment() default "";
+
 		double defaultValue();
 
 		String name();
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
-	@Target({
-			ElementType.METHOD, ElementType.FIELD
-	})
+	@Target({ ElementType.METHOD, ElementType.FIELD })
 	public @interface IntArrayConfig {
+		String comment() default "";
+
 		int[] defaultValue();
 
 		String name();
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
-	@Target({
-			ElementType.METHOD, ElementType.FIELD
-	})
+	@Target({ ElementType.METHOD, ElementType.FIELD })
 	public @interface IntConfig {
+		String comment() default "";
+
 		int defaultValue();
 
 		String name();
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
-	@Target({
-			ElementType.METHOD, ElementType.FIELD
-	})
+	@Target({ ElementType.METHOD, ElementType.FIELD })
 	public @interface ItemIdConfig {
+		String comment() default "";
+
 		int defaultValue();
 
 		String name();
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
-	@Target({
-			ElementType.METHOD, ElementType.FIELD
-	})
+	@Target({ ElementType.METHOD, ElementType.FIELD })
 	public @interface StringArrayConfig {
+		String comment() default "";
+
 		String[] defaultValue();
 
 		String name();
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
-	@Target({
-			ElementType.METHOD, ElementType.FIELD
-	})
+	@Target({ ElementType.METHOD, ElementType.FIELD })
 	public @interface StringConfig {
+		String comment() default "";
+
 		String defaultValue();
 
 		String name();
@@ -127,11 +125,7 @@ public class ConfigurationSupport {
 		public void injectValue(Configuration config, Field field) throws IllegalArgumentException,
 				IllegalAccessException {
 			AN configAnnotation = getAnnotation(field);
-
-			String key = getName(configAnnotation);
-			T defaultValue = getDefaultValue(configAnnotation);
-
-			T value = getValue(config, key, defaultValue);
+			T value = getValue(configAnnotation, config);
 
 			field.setAccessible(true);
 			field.set(null, value);
@@ -141,11 +135,7 @@ public class ConfigurationSupport {
 		public void injectValue(Configuration config, Method method) throws IllegalArgumentException,
 				IllegalAccessException, InvocationTargetException {
 			AN configAnnotation = getAnnotation(method);
-
-			String key = getName(configAnnotation);
-			T defaultValue = getDefaultValue(configAnnotation);
-
-			T value = getValue(config, key, defaultValue);
+			T value = getValue(configAnnotation, config);
 
 			method.setAccessible(true);
 			method.invoke(null, (Object[]) value);
@@ -159,6 +149,16 @@ public class ConfigurationSupport {
 		@Override
 		public boolean isAnnotated(Method method) {
 			return getAnnotation(method) != null;
+		}
+
+		private T getValue(AN configAnnotation, Configuration config) {
+			String key = getName(configAnnotation);
+			T defaultValue = getDefaultValue(configAnnotation);
+
+			String comment = getComment(configAnnotation);
+
+			T value = getValue(config, key, defaultValue, comment);
+			return value;
 		}
 
 		protected abstract AN getAnnotation(Field field);
@@ -187,11 +187,13 @@ public class ConfigurationSupport {
 			return method.getAnnotation(annoType);
 		}
 
+		protected abstract String getComment(AN configAnnotation);
+
 		protected abstract T getDefaultValue(AN configAnnotation);
 
 		protected abstract String getName(AN configAnnotation);
 
-		protected abstract T getValue(Configuration config, String key, T defaultValue);
+		protected abstract T getValue(Configuration config, String key, T defaultValue, String comment);
 	}
 
 	private static class BlockIdConfigProcessor extends AbstractProcessor<BlockIdConfig, Integer> {
@@ -207,6 +209,11 @@ public class ConfigurationSupport {
 		}
 
 		@Override
+		protected String getComment(BlockIdConfig configAnnotation) {
+			return configAnnotation.comment();
+		}
+
+		@Override
 		protected Integer getDefaultValue(BlockIdConfig configAnnotation) {
 			return configAnnotation.defaultValue();
 		}
@@ -217,8 +224,8 @@ public class ConfigurationSupport {
 		}
 
 		@Override
-		protected Integer getValue(Configuration config, String key, Integer defaultValue) {
-			return config.getBlock(key, defaultValue).getInt(defaultValue);
+		protected Integer getValue(Configuration config, String key, Integer defaultValue, String comment) {
+			return config.getBlock(key, defaultValue, comment).getInt(defaultValue);
 		}
 	}
 
@@ -235,6 +242,11 @@ public class ConfigurationSupport {
 		}
 
 		@Override
+		protected String getComment(BooleanArrayConfig configAnnotation) {
+			return configAnnotation.comment();
+		}
+
+		@Override
 		protected boolean[] getDefaultValue(BooleanArrayConfig configAnnotation) {
 			return configAnnotation.defaultValue();
 		}
@@ -245,8 +257,8 @@ public class ConfigurationSupport {
 		}
 
 		@Override
-		protected boolean[] getValue(Configuration config, String key, boolean[] defaultValue) {
-			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue).getBooleanList();
+		protected boolean[] getValue(Configuration config, String key, boolean[] defaultValue, String comment) {
+			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue, comment).getBooleanList();
 		}
 	}
 
@@ -263,6 +275,11 @@ public class ConfigurationSupport {
 		}
 
 		@Override
+		protected String getComment(BooleanConfig configAnnotation) {
+			return configAnnotation.comment();
+		}
+
+		@Override
 		protected Boolean getDefaultValue(BooleanConfig configAnnotation) {
 			return configAnnotation.defaultValue();
 		}
@@ -273,8 +290,8 @@ public class ConfigurationSupport {
 		}
 
 		@Override
-		protected Boolean getValue(Configuration config, String key, Boolean defaultValue) {
-			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue).getBoolean(defaultValue);
+		protected Boolean getValue(Configuration config, String key, Boolean defaultValue, String comment) {
+			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue, comment).getBoolean(defaultValue);
 		}
 	}
 
@@ -291,6 +308,11 @@ public class ConfigurationSupport {
 		}
 
 		@Override
+		protected String getComment(DoubleArrayConfig configAnnotation) {
+			return configAnnotation.comment();
+		}
+
+		@Override
 		protected double[] getDefaultValue(DoubleArrayConfig configAnnotation) {
 			return configAnnotation.defaultValue();
 		}
@@ -301,8 +323,8 @@ public class ConfigurationSupport {
 		}
 
 		@Override
-		protected double[] getValue(Configuration config, String key, double[] defaultValue) {
-			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue).getDoubleList();
+		protected double[] getValue(Configuration config, String key, double[] defaultValue, String comment) {
+			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue, comment).getDoubleList();
 		}
 	}
 
@@ -319,6 +341,11 @@ public class ConfigurationSupport {
 		}
 
 		@Override
+		protected String getComment(DoubleConfig configAnnotation) {
+			return configAnnotation.comment();
+		}
+
+		@Override
 		protected Double getDefaultValue(DoubleConfig configAnnotation) {
 			return configAnnotation.defaultValue();
 		}
@@ -329,8 +356,8 @@ public class ConfigurationSupport {
 		}
 
 		@Override
-		protected Double getValue(Configuration config, String key, Double defaultValue) {
-			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue).getDouble(defaultValue);
+		protected Double getValue(Configuration config, String key, Double defaultValue, String comment) {
+			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue, comment).getDouble(defaultValue);
 		}
 	}
 
@@ -347,6 +374,11 @@ public class ConfigurationSupport {
 		}
 
 		@Override
+		protected String getComment(IntArrayConfig configAnnotation) {
+			return configAnnotation.comment();
+		}
+
+		@Override
 		protected int[] getDefaultValue(IntArrayConfig configAnnotation) {
 			return configAnnotation.defaultValue();
 		}
@@ -357,8 +389,8 @@ public class ConfigurationSupport {
 		}
 
 		@Override
-		protected int[] getValue(Configuration config, String key, int[] defaultValue) {
-			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue).getIntList();
+		protected int[] getValue(Configuration config, String key, int[] defaultValue, String comment) {
+			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue, comment).getIntList();
 		}
 	}
 
@@ -375,6 +407,11 @@ public class ConfigurationSupport {
 		}
 
 		@Override
+		protected String getComment(IntConfig configAnnotation) {
+			return configAnnotation.comment();
+		}
+
+		@Override
 		protected Integer getDefaultValue(IntConfig configAnnotation) {
 			return configAnnotation.defaultValue();
 		}
@@ -385,8 +422,8 @@ public class ConfigurationSupport {
 		}
 
 		@Override
-		protected Integer getValue(Configuration config, String key, Integer defaultValue) {
-			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue).getInt(defaultValue);
+		protected Integer getValue(Configuration config, String key, Integer defaultValue, String comment) {
+			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue, comment).getInt(defaultValue);
 		}
 	}
 
@@ -403,6 +440,11 @@ public class ConfigurationSupport {
 		}
 
 		@Override
+		protected String getComment(ItemIdConfig configAnnotation) {
+			return configAnnotation.comment();
+		}
+
+		@Override
 		protected Integer getDefaultValue(ItemIdConfig configAnnotation) {
 			return configAnnotation.defaultValue();
 		}
@@ -413,8 +455,8 @@ public class ConfigurationSupport {
 		}
 
 		@Override
-		protected Integer getValue(Configuration config, String key, Integer defaultValue) {
-			return config.getItem(key, defaultValue).getInt(defaultValue);
+		protected Integer getValue(Configuration config, String key, Integer defaultValue, String comment) {
+			return config.getItem(key, defaultValue, comment).getInt(defaultValue);
 		}
 	}
 
@@ -442,6 +484,11 @@ public class ConfigurationSupport {
 		}
 
 		@Override
+		protected String getComment(StringArrayConfig configAnnotation) {
+			return configAnnotation.comment();
+		}
+
+		@Override
 		protected String[] getDefaultValue(StringArrayConfig configAnnotation) {
 			return configAnnotation.defaultValue();
 		}
@@ -452,8 +499,8 @@ public class ConfigurationSupport {
 		}
 
 		@Override
-		protected String[] getValue(Configuration config, String key, String[] defaultValue) {
-			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue).getStringList();
+		protected String[] getValue(Configuration config, String key, String[] defaultValue, String comment) {
+			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue, comment).getStringList();
 		}
 
 	}
@@ -470,6 +517,11 @@ public class ConfigurationSupport {
 		}
 
 		@Override
+		protected String getComment(StringConfig configAnnotation) {
+			return configAnnotation.comment();
+		}
+
+		@Override
 		protected String getDefaultValue(StringConfig configAnnotation) {
 			return configAnnotation.defaultValue();
 		}
@@ -480,33 +532,22 @@ public class ConfigurationSupport {
 		}
 
 		@Override
-		protected String getValue(Configuration config, String key, String defaultValue) {
-			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue).getString();
+		protected String getValue(Configuration config, String key, String defaultValue, String comment) {
+			return config.get(Configuration.CATEGORY_GENERAL, key, defaultValue, comment).getString();
 		}
 	}
 
-	private static final Processor<?, ?>[] PROCESSORS = {
-			new BlockIdConfigProcessor(),
-			new ItemIdConfigProcessor(),
-			new BooleanConfigProcessor(),
-			new BooleanArrayConfigProcessor(),
-			new IntConfigProcessor(),
-			new IntArrayConfigProcessor(),
-			new DoubleConfigProcessor(),
-			new DoubleArrayConfigProcessor(),
-			new StringConfigProcessor(),
-			new StringArrayConfigProcessor(),
-	};
+	private static final Processor<?, ?>[] PROCESSORS = { new BlockIdConfigProcessor(), new ItemIdConfigProcessor(),
+			new BooleanConfigProcessor(), new BooleanArrayConfigProcessor(), new IntConfigProcessor(),
+			new IntArrayConfigProcessor(), new DoubleConfigProcessor(), new DoubleArrayConfigProcessor(),
+			new StringConfigProcessor(), new StringArrayConfigProcessor(), };
 
-	public static void load(Class<?> modClass, FMLPreInitializationEvent event) throws IllegalArgumentException,
-			IllegalAccessException, InvocationTargetException {
+	public static void load(Class<?> modClass, FMLPreInitializationEvent event, Configuration config)
+			throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
 		ConfigurationMod configurationMod = modClass.getAnnotation(ConfigurationMod.class);
 		if (configurationMod == null) {
 			return;
 		}
-
-		Configuration config = new Configuration(event.getSuggestedConfigurationFile());
-		config.load();
 
 		for (Processor<?, ?> processor : PROCESSORS) {
 			for (Field field : modClass.getDeclaredFields()) {
@@ -522,8 +563,5 @@ public class ConfigurationSupport {
 				processor.injectValue(config, method);
 			}
 		}
-
-		config.save();
-
 	}
 }
