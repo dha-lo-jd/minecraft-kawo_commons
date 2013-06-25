@@ -2,7 +2,7 @@ package org.lo.d.commons.coords;
 
 import net.minecraft.entity.Entity;
 
-public abstract class NumPoint2D<N extends Number> {
+public abstract class NumPoint2D<N extends Number> implements XY<N> {
 	public interface Factory<N extends Number, P extends NumPoint2D<N>> {
 		P createInstance(N x, N y);
 	}
@@ -62,14 +62,17 @@ public abstract class NumPoint2D<N extends Number> {
 	 * 2DにおけるYは3DではZ
 	 * @return
 	 */
+	@Override
 	public N get3DZ() {
 		return getY();
 	}
 
+	@Override
 	public N getX() {
 		return x;
 	}
 
+	@Override
 	public N getY() {
 		return y;
 	}

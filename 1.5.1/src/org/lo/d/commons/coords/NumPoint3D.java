@@ -2,7 +2,7 @@ package org.lo.d.commons.coords;
 
 import net.minecraft.entity.Entity;
 
-public abstract class NumPoint3D<N extends Number, P extends NumPoint2D<N>> {
+public abstract class NumPoint3D<N extends Number, P extends NumPoint2D<N>> implements XYZ<N, P> {
 	protected final P point2d;
 
 	protected final N y;
@@ -64,14 +64,26 @@ public abstract class NumPoint3D<N extends Number, P extends NumPoint2D<N>> {
 
 	public abstract NumPoint3D<N, P> extendedPoint(N radius);
 
+	public P getPoint2d() {
+		return point2d;
+	}
+
+	@Override
 	public N getX() {
 		return point2d.getX();
 	}
 
+	@Override
+	public P getXY() {
+		return point2d;
+	}
+
+	@Override
 	public N getY() {
 		return y;
 	}
 
+	@Override
 	public N getZ() {
 		return point2d.get3DZ();
 	}

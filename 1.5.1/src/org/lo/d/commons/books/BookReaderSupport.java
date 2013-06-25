@@ -31,25 +31,19 @@ public class BookReaderSupport {
 
 	public interface BookCommandBean {
 		@Retention(RetentionPolicy.RUNTIME)
-		@Target({
-				ElementType.METHOD, ElementType.FIELD
-		})
+		@Target({ ElementType.METHOD, ElementType.FIELD })
 		@interface Alias {
 			String value();
 		}
 
 		@Retention(RetentionPolicy.RUNTIME)
-		@Target({
-				ElementType.METHOD, ElementType.FIELD
-		})
+		@Target({ ElementType.METHOD, ElementType.FIELD })
 		@interface Aliases {
 			Alias[] value();
 		}
 
 		@Retention(RetentionPolicy.RUNTIME)
-		@Target({
-				ElementType.METHOD, ElementType.FIELD
-		})
+		@Target({ ElementType.METHOD, ElementType.FIELD })
 		@interface Required {
 		}
 
@@ -170,7 +164,7 @@ public class BookReaderSupport {
 					}
 					List<String> values = Lists.newArrayList();
 					for (int i = 1; i < prop.length; i++) {
-						values.add(prop[i].trim().toUpperCase());
+						values.add(prop[i].trim());
 					}
 
 					map.putAll(key, values);

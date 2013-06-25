@@ -3,19 +3,35 @@ package org.lo.d.commons.gl;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import net.minecraft.client.renderer.RenderHelper;
+
 import org.lwjgl.opengl.GL11;
 
 import com.google.common.collect.Maps;
 
+/**
+ * ある程度安全にOpenGLの座標マトリックスやフラグ操作を扱えるようにする
+ *
+ * @author dha_lo_jd
+ *
+ */
 public class SafetyGL {
 
-	public interface Processor {
-		public void work(SafetyGL safetyGL);
+	public interface Command {
+		public void repair();
 	}
 
+	public interface Processor {
+		public void process(SafetyGL safetyGL);
+	}
+
+	/**
+	 * Processorのprocess実装内で行った、SafetyGL引数経由の操作をProcessorのprocess実行終了後にすべてもとに戻す
+	 * @param processor
+	 */
 	public static void safetyGLProcess(Processor processor) {
 		SafetyGL safetyGL = new SafetyGL();
-		processor.work(safetyGL);
+		processor.process(safetyGL);
 		safetyGL.repair();
 	}
 
@@ -23,16 +39,26 @@ public class SafetyGL {
 
 	private final Map<Integer, Boolean> states = Maps.newHashMap();
 
+	private Command itemLightingState = null;
+
 	public void disable(int cap) {
 		save(cap);
 		GL11.glDisable(cap);
 	}
 
+	/**
+	 * GUI上のアイテム描画時のライティング設定
+	 */
 	public void disableStandardItemLighting() {
-		disable(GL11.GL_LIGHTING);
-		disable(GL11.GL_LIGHT0);
-		disable(GL11.GL_LIGHT1);
-		disable(GL11.GL_COLOR_MATERIAL);
+		if (itemLightingState == null) {
+			itemLightingState = new Command() {
+				@Override
+				public void repair() {
+					RenderHelper.enableStandardItemLighting();
+				}
+			};
+		}
+		RenderHelper.disableStandardItemLighting();
 	}
 
 	public void enable(int cap) {
@@ -40,16 +66,35 @@ public class SafetyGL {
 		GL11.glEnable(cap);
 	}
 
+	public void enableStandardItemLighting() {
+		if (itemLightingState == null) {
+			itemLightingState = new Command() {
+				@Override
+				public void repair() {
+					RenderHelper.disableStandardItemLighting();
+				}
+			};
+		}
+		RenderHelper.enableStandardItemLighting();
+	}
+
 	public void pushMatrix() {
 		GL11.glPushMatrix();
 		pushCount++;
 	}
 
+	/**
+	 * このSafetyGLインスタンス経由でプッシュしたマトリックスや変更したフラグを一括でもとに戻す
+	 */
 	public void repair() {
 		for (Entry<Integer, Boolean> entry : states.entrySet()) {
 			set(entry.getKey(), entry.getValue());
 		}
 		states.clear();
+		if (itemLightingState != null) {
+			itemLightingState.repair();
+			itemLightingState = null;
+		}
 
 		for (int i = 0; i < pushCount; i++) {
 			GL11.glPopMatrix();
