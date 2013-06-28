@@ -8,6 +8,10 @@ public class Point3DDouble extends NumPoint3D<Double, Point2DDouble> {
 		super(x, y, z, Point2DDouble.Factory.instance);
 	}
 
+	public Point3DDouble(NumPoint3D<?, ?> point3d) {
+		this(point3d.getX().doubleValue(), point3d.getY().doubleValue(), point3d.getZ().doubleValue());
+	}
+
 	public Point3DDouble(Point2DDouble point2d, Double y) {
 		super(point2d, y);
 	}
@@ -46,8 +50,13 @@ public class Point3DDouble extends NumPoint3D<Double, Point2DDouble> {
 		return new Point3DDouble(getX() * radius, getY() * radius, getZ() * radius);
 	}
 
+	@Override
+	public Point3DDouble flip() {
+		return new Point3DDouble(-getX(), -getY(), -getZ());
+	}
+
 	private double addedY(Number y) {
-		return getY() + y.intValue();
+		return getY() + y.doubleValue();
 	}
 
 	private double addedY(NumPoint3D<?, ?> point3d) {

@@ -64,6 +64,8 @@ public abstract class NumPoint3D<N extends Number, P extends NumPoint2D<N>> impl
 
 	public abstract NumPoint3D<N, P> extendedPoint(N radius);
 
+	public abstract NumPoint3D<N, P> flip();
+
 	public P getPoint2d() {
 		return point2d;
 	}

@@ -71,6 +71,11 @@ public class Point3D extends NumPoint3D<Integer, Point2D> {
 		return new Point3D(getX() * radius, getY() * radius, getZ() * radius);
 	}
 
+	@Override
+	public Point3D flip() {
+		return new Point3D(-getX(), -getY(), -getZ());
+	}
+
 	private int addedY(Number y) {
 		return getY() + y.intValue();
 	}
