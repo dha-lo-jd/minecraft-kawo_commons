@@ -153,12 +153,19 @@ public class ReflectionSupport {
 		}
 	}
 
-	private static final Pattern[] PATTERN_DIR_EXCLUDES;
-
+	private static final Pattern[] PATTERN_DIR_INCLUDES;
 	static {
-		PATTERN_DIR_EXCLUDES = new Pattern[] { Pattern.compile("[\\\\/]bin[\\\\/]((?!minecraft.jar)[^\\\\])+$"),
-				Pattern.compile("[\\\\/]lib[\\\\/][^\\\\/]+$"), };
+		PATTERN_DIR_INCLUDES = new Pattern[] { Pattern.compile("[\\\\/]coremods[\\\\/][^\\\\/]+$"),
+				Pattern.compile("[\\\\/]mods[\\\\/][^\\\\/]+$"), };
 	}
+
+	//	static {
+	//		PATTERN_DIR_EXCLUDES = new Pattern[] {
+	//				Pattern.compile("[\\\\/]bin[\\\\/]((?!minecraft.jar)[^\\\\])+$"),
+	//				Pattern.compile("[\\\\/]lib[\\\\/][^\\\\/]+$"),
+	//				Pattern.compile("[\\\\/]bin[\\\\/][^\\\\/]+$"),
+	//		};
+	//	}
 
 	private static final Pattern[] PATTERN_FILE_EXCLUDES;
 
@@ -210,14 +217,6 @@ public class ReflectionSupport {
 		ExecutorService executorService = Executors.newCachedThreadPool();
 		List<Callable<Void>> calls = Lists.newArrayList();
 		for (File directory : dirs) {
-			String directoryString = directory.toString();
-			boolean exclude = false;
-			for (Pattern pattern : PATTERN_DIR_EXCLUDES) {
-				exclude = exclude || pattern.matcher(directoryString).find();
-			}
-			if (exclude) {
-				continue;
-			}
 			System.out.println(directory);
 			findClasses(directory, packageName, workers, classLoader, calls);
 		}
@@ -276,14 +275,14 @@ public class ReflectionSupport {
 	public static void main(String[] args) throws URISyntaxException {
 		String directoryString;
 		directoryString = "V:\\forge_mcp\\1.5.2-7.8.0.712\\forge\\mcp\\jars\\bin\\lwjgl_util.jar";
-		for (Pattern pattern : PATTERN_DIR_EXCLUDES) {
+		for (Pattern pattern : PATTERN_DIR_INCLUDES) {
 			Matcher matcher = pattern.matcher(directoryString);
 			if (matcher.find()) {
 				System.out.println("find: " + matcher.group());
 			}
 		}
 		directoryString = "V:\\forge_mcp\\1.5.2-7.8.0.712\\forge\\mcp\\jars\\bin\\minecraft.jar";
-		for (Pattern pattern : PATTERN_DIR_EXCLUDES) {
+		for (Pattern pattern : PATTERN_DIR_INCLUDES) {
 			Matcher matcher = pattern.matcher(directoryString);
 			if (matcher.find()) {
 				System.out.println("find: " + matcher.group());
@@ -323,6 +322,14 @@ public class ReflectionSupport {
 			return;
 		}
 		if (!directory.isDirectory()) {
+			String directoryString = directory.toString();
+			boolean include = false;
+			for (Pattern pattern : PATTERN_DIR_INCLUDES) {
+				include = include || pattern.matcher(directoryString).find();
+			}
+			if (!include) {
+				return;
+			}
 			lazyAsyncCalls.add(new CompositeFileClassesFindJob(directory, packageName, workers, classLoader));
 			return;
 		}
