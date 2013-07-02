@@ -1,5 +1,6 @@
 package org.lo.d.commons.bytecode;
 
+import java.lang.reflect.Method;
 import java.util.List;
 
 import org.objectweb.asm.ClassReader;
@@ -11,6 +12,8 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 import com.google.common.collect.Lists;
+
+import cpw.mods.fml.relauncher.RelaunchClassLoader;
 
 public class ExtendedClassSupport {
 
@@ -160,13 +163,10 @@ public class ExtendedClassSupport {
 	}
 
 	public static Class<?> loadAndGenerateNewExtendedClass(Class<?> baseClass, Class<?> oldSuperClass,
-			Class<?> newSuperClass,
-			Class<?> markerInterface,
-			Iterable<Class<?>> appendInterfaces) {
+			Class<?> newSuperClass, Class<?> markerInterface, Iterable<Class<?>> appendInterfaces) {
 		try {
-			final GenerateClassName generateClassName = new ExtendedClassSupport.GenerateClassName(
-					baseClass, oldSuperClass, newSuperClass,
-					markerInterface);
+			final GenerateClassName generateClassName = new ExtendedClassSupport.GenerateClassName(baseClass,
+					oldSuperClass, newSuperClass, markerInterface);
 			final String baseClassName = generateClassName.getBaseClassName().getPath().getName();
 			NewGenarateClassName newGenarateClassName = generateClassName.getNewGenarateClassName();
 			final String newClassName = newGenarateClassName.getPath().getName();
@@ -175,8 +175,8 @@ public class ExtendedClassSupport {
 			final List<String> interfaceList = Lists.newArrayList();
 
 			ClassWriter cw = new ClassWriter(Opcodes.ASM4);
-			ClassReader cr = new ClassReader(baseClass.getClassLoader()
-					.getResourceAsStream(generateClassName.getBaseClassName().getFileName()));
+			ClassReader cr = new ClassReader(baseClass.getClassLoader().getResourceAsStream(
+					generateClassName.getBaseClassName().getFileName()));
 			ClassVisitor cv = new ClassVisitor(Opcodes.ASM4, cw) {
 
 				@Override
@@ -258,6 +258,13 @@ public class ExtendedClassSupport {
 			cv.visit(Opcodes.V1_7, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, newClassName, null, newSuperClassName,
 					interfaceList.toArray(new String[] {}));
 
+			//			byte[] byteArray = cw.toByteArray();
+			//			File f = new File("V:\\eclipse_temp\\test.class");
+			//			try (FileOutputStream fo = new FileOutputStream(f);) {
+			//				fo.write(byteArray);
+			//			} catch (Exception e) {
+			//				e.printStackTrace();
+			//			}
 			return loadClass(newGenarateClassName.getFqn(), cw.toByteArray());
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -275,6 +282,14 @@ public class ExtendedClassSupport {
 		Class<?> clazz = null;
 		try {
 			ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+			if (classLoader instanceof RelaunchClassLoader) {
+				RelaunchClassLoader rcl = (RelaunchClassLoader) classLoader;
+				Method method = rcl.getClass().getDeclaredMethod("runTransformers", new Class<?>[] {
+						String.class, String.class, byte[].class
+				});
+				method.setAccessible(true);
+				b = (byte[]) method.invoke(rcl, className, className, b);
+			}
 			Class<?> cls = Class.forName("java.lang.ClassLoader");
 			java.lang.reflect.Method method = cls.getDeclaredMethod("defineClass", new Class[] {
 					String.class, byte[].class, int.class, int.class
