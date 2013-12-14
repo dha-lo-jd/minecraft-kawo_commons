@@ -11,12 +11,10 @@ import com.google.common.collect.Maps;
 
 /**
  * ある程度安全にOpenGLの座標マトリックスやフラグ操作を扱えるようにする
- *
+ * 
  * @author dha_lo_jd
- *
  */
 public class SafetyGL {
-
 	public interface Command {
 		public void repair();
 	}
@@ -27,15 +25,25 @@ public class SafetyGL {
 
 	/**
 	 * Processorのprocess実装内で行った、SafetyGL引数経由の操作をProcessorのprocess実行終了後にすべてもとに戻す
+	 * 
 	 * @param processor
 	 */
 	public static void safetyGLProcess(Processor processor) {
 		SafetyGL safetyGL = new SafetyGL();
+		try {
+			safetyGL.preBindedTexture2DId = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+			safetyGL.setRepairPreBindedTexture2D(true);
+		} catch (Exception e) {
+			safetyGL.setRepairPreBindedTexture2D(false);
+		}
 		processor.process(safetyGL);
 		safetyGL.repair();
 	}
 
 	private int pushCount = 0;
+
+	private int preBindedTexture2DId;
+	private boolean repairPreBindedTexture2D;
 
 	private final Map<Integer, Boolean> states = Maps.newHashMap();
 
@@ -78,6 +86,10 @@ public class SafetyGL {
 		RenderHelper.enableStandardItemLighting();
 	}
 
+	public boolean isRepairPreBindedTexture2D() {
+		return repairPreBindedTexture2D;
+	}
+
 	public void pushMatrix() {
 		GL11.glPushMatrix();
 		pushCount++;
@@ -99,6 +111,25 @@ public class SafetyGL {
 		for (int i = 0; i < pushCount; i++) {
 			GL11.glPopMatrix();
 		}
+
+		if (repairPreBindedTexture2D) {
+			try {
+				repairPreBindedTexture2D();
+			} catch (Exception e) {
+				e.printStackTrace();// こういうコードは良くないという見本
+			}
+		}
+	}
+
+	/**
+	 * SafetyGL処理が始まる前にバインドされていたテクスチャをバインドし直す
+	 */
+	public void repairPreBindedTexture2D() throws Exception {
+		GL11.glBindTexture(GL11.GL_TEXTURE_2D, preBindedTexture2DId);
+	}
+
+	public void setRepairPreBindedTexture2D(boolean repairPreBindedTexture2D) {
+		this.repairPreBindedTexture2D = repairPreBindedTexture2D;
 	}
 
 	private void save(int cap) {
